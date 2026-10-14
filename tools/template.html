@@ -17,7 +17,7 @@
   /* one stage per Figma size (1440x900 / 1920x1080 / 2048x940); only the best-fitting one is shown */
   .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: none; }
   .stage.on { display: block; }
-  .screen { position: absolute; inset: 0; overflow: hidden; display: none; }
+  .screen { position: absolute; inset: 0; display: none; }
   .logo { -webkit-mask: url(assets/logo.svg) center / 100% 100% no-repeat; mask: url(assets/logo.svg) center / 100% 100% no-repeat; }
   .screen.on { display: block; animation: fade .45s ease both; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -95,11 +95,37 @@
     const sw = +stage.dataset.w, sh = +stage.dataset.h;
     const s = portrait ? W / sw : Math.min(W / sw, H / sh);
     const left = (W - sw * s) / 2;
-    const top = portrait ? 0 : (H - sh * s) / 2;
+    const top = 0;
     stage.style.transform = 'translate(' + left + 'px,' + top + 'px) scale(' + s + ')';
+    bleed(left / s, portrait ? 0 : (H - sh * s) / s);
     vp.style.height = (portrait ? sh * s : H) + 'px';
     document.documentElement.style.overflowY = portrait ? 'auto' : 'hidden';
     document.documentElement.dataset.size = stage.dataset.set;
+  }
+
+  // full-width photos / backgrounds reach the window edges instead of leaving white bars
+  // when the window ratio differs from the design (mx: side margin, my: bottom margin)
+  function bleed(mx, my) {
+    const sw = +stage.dataset.w, sh = +stage.dataset.h;
+    stage.querySelectorAll('.screen > .n').forEach(el => {
+      const b = el.dataset.b.split(',').map(Number);
+      if (b[0] > 0.5 || b[2] < sw - 1) return;
+      const w2 = sw + 2 * mx, h2 = b[1] + b[3] >= sh - 1 ? b[3] + my : b[3];
+      el.style.left = -mx + 'px';
+      el.style.width = w2 + 'px';
+      el.style.height = h2 + 'px';
+      // cropped photo: grow the image so it still covers, keeping the same centre
+      if (el._bg === undefined) el._bg = [el.style.backgroundSize, el.style.backgroundPosition];
+      const sz = (el._bg[0] || '').match(/^([\d.-]+)px ([\d.-]+)px$/);
+      const ps = (el._bg[1] || '').match(/^([\d.-]+)px ([\d.-]+)px$/);
+      if (sz && ps) {
+        const iw = +sz[1], ih = +sz[2], px = +ps[1], py = +ps[2];
+        const f = Math.max(1, w2 / iw, (h2 - py) / ih);
+        const cx = (b[2] / 2 - px) / iw;
+        el.style.backgroundSize = iw * f + 'px ' + ih * f + 'px';
+        el.style.backgroundPosition = (w2 / 2 - cx * iw * f) + 'px ' + py * f + 'px';
+      }
+    });
   }
 
   function show(slug) {
