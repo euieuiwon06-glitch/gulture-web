@@ -20,5 +20,6 @@ python tools/build.py
 `tools/figma1440/*.json` is the layer export of the 1440 master frames (each layer also
 records its original 1920 geometry as `o`). `build.py` derives the 1920 and 2048 sets with
 the same rule used in Figma: positions and boxes scale with the frame, text / circles /
-icons / logo scale uniformly, cropped photos are re-fitted. `assets/logo.svg` is the
+icons / logo scale uniformly, cropped photos are re-fitted. `tools/figma1920_crops.json` keeps photo crops adjusted directly on the 1920 page.
+`assets/logo.svg` is the
 vector logo, `assets/img/` the photos (WebP, from the 4K slot-fit set).

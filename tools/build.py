@@ -76,6 +76,25 @@ for part in 'ABCDEF':
         frames[f['nm']] = f
 
 
+# image crops the designer adjusted directly on a size-specific Figma page, keyed by
+# frame name and child-index path (same tree as the 1440 master)
+CROP_OVERRIDES = {}
+for set_id in ('1920', '2048'):
+    path = os.path.join(ROOT, 'tools', 'figma%s_crops.json' % set_id)
+    if os.path.exists(path):
+        CROP_OVERRIDES[set_id] = json.load(open(path, encoding='utf-8'))
+
+
+def apply_crops(frame, entries):
+    for key, mode, x in entries:
+        n = frame
+        for i in key.split('.'):
+            n = n['c'][int(i)]
+        for j, p in enumerate(n.get('f', [])):
+            if isinstance(p, dict):
+                n['f'][j] = dict(p, m=mode, x=x) if mode == 'CROP' else dict(p, m=mode)
+
+
 def svg_kind(key):
     d = re.search(r' d="([^"]+)"', svgs[key])
     d = d.group(1) if d else ''
@@ -231,6 +250,9 @@ def shadow(fx, text=False):
     return ','.join(out)
 
 
+SVG_UID = [0]
+
+
 def render(n, screen, area_k):
     x, y, w, h = n['b']
     t = n['t']
@@ -252,6 +274,11 @@ def render(n, screen, area_k):
         st += ['width:%s' % px(w), 'height:%s' % px(h)]
         svg = re.sub(r'<svg width="[^"]*" height="[^"]*"',
                      '<svg width="100%" height="100%" preserveAspectRatio="none"', svgs[n['sv']], 1)
+        ids = re.findall(r'id="([^"]+)"', svg)
+        if ids:
+            SVG_UID[0] += 1
+            for i in ids:
+                svg = svg.replace('id="%s"' % i, 'id="%s-%d"' % (i, SVG_UID[0])).replace('#%s)' % i, '#%s-%d)' % (i, SVG_UID[0]))
         return '<div class="n" style="%s"%s>%s</div>' % (';'.join(st), attrs, svg)
 
     if t == 'TE':
@@ -344,8 +371,13 @@ for set_id, W, H, U in SETS:
     area_k = (W / 1920) * (H / 1080)     # photo areas compared in original 1920 units
     out = []
     for name, slug in SCREENS:
-        f = flatten(frames[name])
-        kids = [tf(c, SX, SY, U) for c in f.get('c', [])]
+        src = frames[name]
+        kids = [tf(c, SX, SY, U) for c in src.get('c', [])]
+        if name in CROP_OVERRIDES.get(set_id, {}):
+            tmp = dict(src, c=kids)
+            apply_crops(tmp, CROP_OVERRIDES[set_id][name])
+        f = flatten(dict(src, c=kids))
+        kids = f['c']
         body = ''.join(render(c, slug, area_k) for c in kids)
         title = name.split('/', 1)[1].strip()
         out.append('<section class="screen" data-set="%s" data-slug="%s" data-title="%s" style="background:%s">%s</section>'
