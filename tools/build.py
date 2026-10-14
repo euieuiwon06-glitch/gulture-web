@@ -85,6 +85,27 @@ for set_id in ('1920', '2048'):
         CROP_OVERRIDES[set_id] = json.load(open(path, encoding='utf-8'))
 
 
+# photos with Figma image adjustments (exposure / contrast / saturation / shadows):
+# CSS can't reproduce those, so the photo is rendered in Figma and used as-is.
+# set -> frame -> child path -> (webp name, node box in that set)
+BAKED = {
+    '1440': {'C / 20 Hero – City Motion': {'0': ('baked_hero_1440', [0, 70, 1440, 830])},
+             'C / 01 Loading – Building Your Fit': {'0': ('baked_loading_1440', [0, 55.83, 1440, 844.17])}},
+    '1920': {'C / 20 Hero – City Motion': {'0': ('baked_hero_1920', [0, 84, 1920, 996])},
+             'C / 01 Loading – Building Your Fit': {'0': ('baked_loading_1920', [0, 67, 1920, 1013])}},
+    '2048': {'C / 20 Hero – City Motion': {'0': ('baked_hero_2048', [0, 73, 2123, 867])},
+             'C / 01 Loading – Building Your Fit': {'0': ('baked_loading_2048', [0, 58.31, 2048, 881.69])}},
+}
+
+
+def apply_baked(frame, entries):
+    for key, (name, box) in entries.items():
+        n = frame
+        for i in key.split('.'):
+            n = n['c'][int(i)]
+        n['f'] = [{'file': name, 'geo': box}]
+
+
 def apply_crops(frame, entries):
     for key, mode, x in entries:
         n = frame
@@ -224,7 +245,11 @@ def background(n):
     layers = []
     w, h = n['b'][2], n['b'][3]
     for p in reversed(n.get('f', [])):
-        if isinstance(p, dict):
+        if isinstance(p, dict) and 'file' in p:
+            gx, gy, gw, gh = p['geo']
+            ex, ey = n['b'][0], n['b'][1]
+            layers.append('url(assets/img/%s.webp) %s %s / %s %s no-repeat' % (p['file'], px(gx - ex), px(gy - ey), px(gw), px(gh)))
+        elif isinstance(p, dict):
             url = 'url(assets/img/%s.webp)' % IMG[p['h']]
             if p['m'] == 'CROP':
                 (a, _, tx), (_, d, ty) = p['x']
@@ -305,7 +330,7 @@ def render(n, screen, area_k):
             elif lh:
                 s.append('line-height:%s' % px(lh))
             else:
-                s.append('line-height:normal')
+                s.append('line-height:%s' % px(h / (txt.count('\n') + 1)))
             if fill:
                 s.append('color:' + color(fill))
             if tc == 'UPPER':
@@ -374,8 +399,9 @@ for set_id, W, H, U in SETS:
         src = frames[name]
         kids = [tf(c, SX, SY, U) for c in src.get('c', [])]
         if name in CROP_OVERRIDES.get(set_id, {}):
-            tmp = dict(src, c=kids)
-            apply_crops(tmp, CROP_OVERRIDES[set_id][name])
+            apply_crops(dict(src, c=kids), CROP_OVERRIDES[set_id][name])
+        if name in BAKED.get(set_id, {}):
+            apply_baked(dict(src, c=kids), BAKED[set_id][name])
         f = flatten(dict(src, c=kids))
         kids = f['c']
         body = ''.join(render(c, slug, area_k) for c in kids)
