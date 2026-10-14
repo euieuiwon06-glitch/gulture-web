@@ -93,7 +93,7 @@ BAKED = {
              'C / 01 Loading – Building Your Fit': {'0': ('baked_loading_1440', [0, 55.83, 1440, 844.17])}},
     '1920': {'C / 20 Hero – City Motion': {'0': ('baked_hero_1920', [0, 84, 1920, 996])},
              'C / 01 Loading – Building Your Fit': {'0': ('baked_loading_1920', [0, 67, 1920, 1013])}},
-    '2048': {'C / 20 Hero – City Motion': {'0': ('baked_hero_2048', [0, 73, 2123, 867])},
+    '2048': {'C / 20 Hero – City Motion': {'0': ('baked_hero_2048', [1.74, 73, 2121.26, 867])},
              'C / 01 Loading – Building Your Fit': {'0': ('baked_loading_2048', [0, 58.31, 2048, 881.69])}},
 }
 

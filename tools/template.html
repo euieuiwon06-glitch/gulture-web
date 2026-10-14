@@ -107,6 +107,7 @@
   // when the window ratio differs from the design (mx: side margin, my: bottom margin)
   function bleed(mx, my) {
     const sw = +stage.dataset.w, sh = +stage.dataset.h;
+    mx += 2; my += 2;                        // overscan so no sub-pixel edge shows
     stage.querySelectorAll('.screen > .n').forEach(el => {
       const b = el.dataset.b.split(',').map(Number);
       if (b[0] > 0.5 || b[2] < sw - 1) return;
@@ -120,8 +121,8 @@
       const ps = (el._bg[1] || '').match(/^([\d.-]+)px ([\d.-]+)px$/);
       if (sz && ps) {
         const iw = +sz[1], ih = +sz[2], px = +ps[1], py = +ps[2];
-        const f = Math.max(1, w2 / iw, (h2 - py) / ih);
-        const cx = (b[2] / 2 - px) / iw;
+        const cx = (b[2] / 2 - px) / iw;        // image point under the element's centre
+        const f = Math.max(1, (w2 / 2) / (cx * iw), (w2 / 2) / ((1 - cx) * iw), (h2 - py) / ih);
         el.style.backgroundSize = iw * f + 'px ' + ih * f + 'px';
         el.style.backgroundPosition = (w2 / 2 - cx * iw * f) + 'px ' + py * f + 'px';
       }
