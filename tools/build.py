@@ -386,6 +386,14 @@ def render(n, screen, area_k):
             and w * h / area_k > 40000:
         attrs += ' data-go="%s"' % PHOTO_LINK[screen]
         cls += ' link photo'
+    # pill buttons (label + arrow): centre label and arrow vertically in the pill
+    # (the label is trimmed to its cap height in CSS)
+    if 'btn' in cls and len(kids) == 2 and kids[0]['t'] == 'TE' and is_icon(kids[1]):
+        te, ic = kids
+        gap = ic['b'][0] - (te['b'][0] + te['b'][2])
+        # keep Figma's horizontal positions; only centre vertically
+        st += ['display:flex', 'align-items:center', 'padding-left:%s' % px(te['b'][0]), 'gap:%s' % px(gap)]
+        cls += ' flow'
     inner = ''.join(render(c, screen, area_k) for c in kids)
     return '<div class="%s" style="%s"%s>%s</div>' % (cls, ';'.join(st), attrs, inner)
 
@@ -416,5 +424,18 @@ menu = ''.join('<a href="#/%s"><span>%02d</span>%s</a>' % (s, i + 1, html.escape
 tpl = open(os.path.join(ROOT, 'tools', 'template.html'), encoding='utf-8').read()
 page = tpl.replace('{{STAGES}}', '\n'.join(stages)).replace('{{MENU}}', menu) \
           .replace('{{ORDER}}', json.dumps([s for _, s in SCREENS]))
+# cache-busting: every asset URL carries a hash of its content
+import hashlib
+
+
+def bust(m):
+    path = m.group(1)
+    full = os.path.join(ROOT, path.replace('/', os.sep))
+    if not os.path.exists(full):
+        return m.group(0)
+    return path + '?v=' + hashlib.md5(open(full, 'rb').read()).hexdigest()[:8]
+
+
+page = re.sub(r'(assets/[\w./-]+\.(?:webp|svg|js))', bust, page)
 open(os.path.join(ROOT, 'index.html'), 'w', encoding='utf-8').write(page)
 print('index.html', len(page) // 1024, 'KB,', len(SCREENS), 'screens x', len(SETS), 'sets')

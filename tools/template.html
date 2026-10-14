@@ -25,6 +25,10 @@
   .n svg { display: block; overflow: visible; }
   .t { line-height: normal; }
   .link { cursor: pointer; }
+  .flow { box-sizing: border-box; }
+  .flow > .n { position: relative; left: auto !important; top: auto !important; flex: none; }
+  .flow > .t { text-box: trim-both cap alphabetic; }
+  .flow > .t span { line-height: 1 !important; }
   .btn { transition: transform .2s ease, filter .2s ease; }
   .btn:hover { filter: brightness(1.18); }
   .t.link:hover { opacity: .6; }
