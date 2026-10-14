@@ -14,8 +14,11 @@
   html, body { background: var(--paper); color: var(--ink); overflow-x: hidden; }
   body { font-family: 'Geist', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   #viewport { position: relative; width: 100vw; overflow: hidden; }
-  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
-  .screen { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; display: none; }
+  /* one stage per Figma size (1440x900 / 1920x1080 / 2048x940); only the best-fitting one is shown */
+  .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: none; }
+  .stage.on { display: block; }
+  .screen { position: absolute; inset: 0; overflow: hidden; display: none; }
+  .logo { -webkit-mask: url(assets/logo.svg) center / 100% 100% no-repeat; mask: url(assets/logo.svg) center / 100% 100% no-repeat; }
   .screen.on { display: block; animation: fade .45s ease both; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
   .n { position: absolute; }
@@ -27,14 +30,14 @@
   .t.link:hover { opacity: .6; }
   .photo { transition: filter .3s ease; }
   .photo:hover { filter: brightness(.94); }
-  .screen#loading .n:nth-child(10) { animation: load 2.4s cubic-bezier(.6,0,.2,1) both; transform-origin: 0 0; }
+  .load-fill { animation: load 2.4s cubic-bezier(.6,0,.2,1) both; }
   @keyframes load { from { width: 0; } }
 
   #menu { position: fixed; inset: 0; background: rgba(255,255,255,.97); z-index: 10; display: none;
           padding: 72px 6vw; overflow-y: auto; }
   #menu.on { display: block; animation: fade .3s ease both; }
   #menu header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 40px; }
-  #menu .logo { font-weight: 600; font-size: 40px; letter-spacing: -.04em; }
+  #menu .logo { display: block; width: 118px; height: 40px; background: var(--ink); }
   #menu button { background: none; border: 0; font: 500 14px 'Geist', sans-serif; letter-spacing: .18em; cursor: pointer; color: var(--ink); }
   #menu nav { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); border-top: 1px solid var(--ink); }
   #menu a { display: flex; gap: 20px; align-items: baseline; padding: 18px 0; border-bottom: 1px solid var(--ink);
@@ -57,41 +60,58 @@
 </style>
 </head>
 <body>
-<div id="viewport"><div id="stage">
-{{SCREENS}}
-</div></div>
+<div id="viewport">
+{{STAGES}}
+</div>
 
 <div id="menu" role="dialog" aria-label="Screens">
-  <header><span class="logo">gulture</span><button type="button" id="close">CLOSE</button></header>
+  <header><span class="logo" role="img" aria-label="gulture"></span><button type="button" id="close">CLOSE</button></header>
   <nav>{{MENU}}</nav>
 </div>
 
 <script>
 (() => {
   const ORDER = {{ORDER}};
-  const stage = document.getElementById('stage');
+  const stages = [...document.querySelectorAll('.stage')];
+  let stage = stages[0];
   const vp = document.getElementById('viewport');
   const menu = document.getElementById('menu');
   let timer = null;
 
-  // fit the whole 1920x1080 screen inside the window (no cropping);
-  // on portrait screens fall back to full width and let the page scroll
+  // pick the Figma size whose aspect ratio is closest to the window, then fit it
+  // inside the window without cropping; portrait screens use the 1440 set at full
+  // width and scroll
   function fit() {
     const W = window.innerWidth, H = window.innerHeight;
     const portrait = W < H;
-    const s = portrait ? W / 1920 : Math.min(W / 1920, H / 1080);
-    const left = (W - 1920 * s) / 2;
-    const top = portrait ? 0 : (H - 1080 * s) / 2;
+    let best = stages[0];
+    if (!portrait) {
+      const r = Math.log(W / H);
+      best = stages.reduce((a, b) =>
+        Math.abs(Math.log(b.dataset.w / b.dataset.h) - r) < Math.abs(Math.log(a.dataset.w / a.dataset.h) - r) ? b : a);
+    }
+    if (best !== stage) { stage = best; show(current()); }
+    stages.forEach(s => s.classList.toggle('on', s === stage));
+    const sw = +stage.dataset.w, sh = +stage.dataset.h;
+    const s = portrait ? W / sw : Math.min(W / sw, H / sh);
+    const left = (W - sw * s) / 2;
+    const top = portrait ? 0 : (H - sh * s) / 2;
     stage.style.transform = 'translate(' + left + 'px,' + top + 'px) scale(' + s + ')';
-    vp.style.height = (portrait ? 1080 * s : H) + 'px';
+    vp.style.height = (portrait ? sh * s : H) + 'px';
     document.documentElement.style.overflowY = portrait ? 'auto' : 'hidden';
+    document.documentElement.dataset.size = stage.dataset.set;
   }
 
   function show(slug) {
     if (!ORDER.includes(slug)) slug = ORDER[0];
-    document.querySelectorAll('.screen').forEach(el => el.classList.toggle('on', el.id === slug));
+    let cur = null;
+    document.querySelectorAll('.screen').forEach(el => {
+      const on = el.dataset.slug === slug && el.parentNode === stage;
+      el.classList.toggle('on', on);
+      if (on) cur = el;
+    });
     menu.querySelectorAll('a').forEach(a => a.classList.toggle('cur', a.getAttribute('href') === '#/' + slug));
-    document.title = 'gulture — ' + document.getElementById(slug).dataset.title;
+    document.title = 'gulture — ' + cur.dataset.title;
     clearTimeout(timer);
     if (slug === 'loading') timer = setTimeout(() => go('directions'), 2600);
     window.scrollTo(0, 0);
@@ -100,7 +120,7 @@
   function go(slug) { location.hash = '#/' + slug; }
   const current = () => location.hash.replace(/^#\/?/, '') || ORDER[0];
 
-  stage.addEventListener('click', e => {
+  vp.addEventListener('click', e => {
     const el = e.target.closest('[data-go],[data-menu]');
     if (!el) return;
     if (el.dataset.menu) { menu.classList.add('on'); return; }
