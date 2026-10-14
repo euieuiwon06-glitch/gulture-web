@@ -41,6 +41,19 @@
             color: var(--ink); text-decoration: none; font-size: 17px; letter-spacing: .04em; margin-right: 24px; }
   #menu a span { font-family: 'Doto', monospace; font-weight: 900; font-size: 22px; min-width: 34px; }
   #menu a:hover, #menu a.cur { opacity: .5; }
+
+  /* interactive states (assets/interact.js) */
+  .ui { cursor: pointer; }
+  .mv { transition: left .3s cubic-bezier(.3,.7,.2,1), width .3s cubic-bezier(.3,.7,.2,1); }
+  .rot { transition: transform .3s ease; }
+  .edit span { cursor: text; border-bottom: 1px dashed transparent; }
+  .edit:hover span, .edit span:focus { border-bottom-color: #bbb; }
+  .chat-input { background: transparent; border: 0; outline: none; }
+  .chat-input::placeholder { color: #808080; opacity: 1; }
+  #toast { position: fixed; left: 50%; bottom: 32px; transform: translate(-50%, 12px); background: #121212; color: #fff;
+           font: 400 14px 'Geist', sans-serif; letter-spacing: .14em; padding: 14px 26px; border-radius: 30px;
+           opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; z-index: 20; }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
@@ -97,6 +110,7 @@
   menu.addEventListener('click', e => { if (e.target.closest('a')) menu.classList.remove('on'); });
 
   document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, [contenteditable="true"]')) return;
     if (e.key === 'Escape') return menu.classList.remove('on');
     const i = ORDER.indexOf(current());
     if (e.key === 'ArrowRight') go(ORDER[Math.min(i + 1, ORDER.length - 1)]);
@@ -109,5 +123,6 @@
   show(current());
 })();
 </script>
+<script src="assets/interact.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ Web version of the gulture homepage screens, built 1:1 from the Figma file
 - Live: https://euieuiwon06-glitch.github.io/gulture-web/
 - Each screen is reproduced with absolute positioning from the Figma layer export and scaled to the browser width.
 - Navigate with the header links / buttons, the ☰ menu (all screens), or ← → keys.
+- Sliders, radios, segmented tabs, filter chips, card selection, view switching (front/side/back) and both chat inputs work (`assets/interact.js`).
 
 ## Rebuild
 

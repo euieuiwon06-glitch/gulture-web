@@ -36,15 +36,15 @@ LINKS = {
     'gulture': 'hero', 'LOOKS': 'looks', 'FITTING': 'fitting', 'JOURNAL': 'motion-cards',
     'ENTER FITTING': 'body', 'SAVE BODY PROFILE': 'analysis', 'BUILD MY FIT': 'profile',
     'VIEW FULL ANALYSIS': 'profile', 'CONTINUE': 'taste', 'SAVE MY TASTE': 'chat-session',
-    'VIEW FIT': 'loading', 'SEND': 'chat-session', 'TRY LOOK 02': 'fitting-room', 'VIEW ALL 3': 'directions',
+    'VIEW FIT': 'loading', 'TRY LOOK 02': 'fitting-room', 'VIEW ALL 3': 'directions',
     'SELECT FORM': 'looks', 'TRY THIS LOOK': 'fitting', 'SAVE THIS LOOK': 'outfit',
     'CHANGE GARMENT': 'looks', 'OPEN FULL LOOK': 'look-a', 'RELATED LOOKS': 'look-b',
 }
 SKIP_NEXT = {'body': 'analysis', 'taste': 'chat-session'}
 # photo click targets per screen
 PHOTO_LINK = {'looks': 'look-a', 'home': 'looks', 'motion-cards': 'looks', 'motion-01': 'looks',
-              'directions': 'looks', 'look-a': 'look-b', 'look-b': 'look-a', 'chat': 'fitting-room',
-              'chat-session': 'look-a', 'fitting': 'fitting-room', 'outfit': 'look-a', 'profile': 'taste'}
+              'look-a': 'look-b', 'look-b': 'look-a', 'chat': 'fitting-room',
+              'chat-session': 'look-a', 'outfit': 'look-a'}
 # small arrow-only buttons
 ARROW_LINK = {'home': 'looks', 'looks': 'look-a', 'motion-cards': 'body', 'look-a': 'look-b',
               'analysis': 'profile', 'chat': 'directions'}
@@ -109,6 +109,7 @@ def render(n, screen, depth=0):
     st = ['left:%s' % px(x), 'top:%s' % px(y)]
     attrs = ''
     cls = 'n'
+    geo = ' data-b="%s"' % ','.join('%g' % round(float(v), 1) for v in n['b'])
     if 'op' in n:
         st.append('opacity:%g' % round(n['op'], 3))
 
@@ -116,7 +117,7 @@ def render(n, screen, depth=0):
         st += ['width:%s' % px(w), 'height:%s' % px(h)]
         svg = svgs[n['sv']]
         svg = re.sub(r'<svg width="[^"]*" height="[^"]*"', '<svg width="100%" height="100%" preserveAspectRatio="none"', svg, 1)
-        return '<div class="n" style="%s">%s</div>' % (';'.join(st), svg)
+        return '<div class="n" style="%s"%s>%s</div>' % (';'.join(st), geo, svg)
 
     if t == 'TE':
         txt = n['x']
@@ -161,7 +162,7 @@ def render(n, screen, depth=0):
             attrs = ' data-go="%s"' % SKIP_NEXT[screen]
         if attrs:
             cls += ' link'
-        return '<div class="%s t" style="%s"%s>%s</div>' % (cls, ';'.join(st), attrs, ''.join(spans))
+        return '<div class="%s t" style="%s"%s%s>%s</div>' % (cls, ';'.join(st), attrs, geo, ''.join(spans))
 
     # boxes: FR / IN / CO / GR / RE / EL
     st += ['width:%s' % px(w), 'height:%s' % px(h)]
@@ -202,7 +203,7 @@ def render(n, screen, depth=0):
             and w * h > 40000:
         attrs, cls = ' data-go="%s"' % PHOTO_LINK[screen], cls + ' link photo'
     inner = ''.join(render(c, screen, depth + 1) for c in kids)
-    return '<div class="%s" style="%s"%s>%s</div>' % (cls, ';'.join(st), attrs, inner)
+    return '<div class="%s" style="%s"%s%s>%s</div>' % (cls, ';'.join(st), attrs, geo, inner)
 
 
 screens_html, index = [], []
