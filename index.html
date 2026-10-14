@@ -123,10 +123,17 @@ IN MOTION</span></div><div class="n t" style="left:745px;top:568px;width:348px;w
   const menu = document.getElementById('menu');
   let timer = null;
 
+  // fit the whole 1920x1080 screen inside the window (no cropping);
+  // on portrait screens fall back to full width and let the page scroll
   function fit() {
-    const s = window.innerWidth / 1920;
-    stage.style.transform = 'scale(' + s + ')';
-    vp.style.height = (1080 * s) + 'px';
+    const W = window.innerWidth, H = window.innerHeight;
+    const portrait = W < H;
+    const s = portrait ? W / 1920 : Math.min(W / 1920, H / 1080);
+    const left = (W - 1920 * s) / 2;
+    const top = portrait ? 0 : (H - 1080 * s) / 2;
+    stage.style.transform = 'translate(' + left + 'px,' + top + 'px) scale(' + s + ')';
+    vp.style.height = (portrait ? 1080 * s : H) + 'px';
+    document.documentElement.style.overflowY = portrait ? 'auto' : 'hidden';
   }
 
   function show(slug) {
